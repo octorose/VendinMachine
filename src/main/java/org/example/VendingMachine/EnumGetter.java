@@ -1,7 +1,7 @@
 package org.example.VendingMachine;
 
 public class EnumGetter {
-    public static Coin getCoinByValue(int coinValue) {
+    public static Coin getCoinByValue(double coinValue) {
         for (Coin coin : Coin.values()) {
             if (coin.getValue() == coinValue) {
                 return coin;

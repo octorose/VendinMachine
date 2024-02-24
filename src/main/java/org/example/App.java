@@ -1,13 +1,17 @@
 package org.example;
 
 import org.example.VendingMachine.*;
+import org.example.VendingMachine.exceptions.ProductOutOfStockException;
+import org.example.VendingMachine.exceptions.UnsuficentMoneyException;
+
+import java.util.Locale;
 import java.util.Scanner;
 
 public class App 
 {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ProductOutOfStockException, UnsuficentMoneyException {
     VendinMachine  vendingMachine = new VendinMachine();
-    Scanner scanner = new Scanner(System.in);
+    Scanner scanner = new Scanner(System.in).useLocale(Locale.US);
         while (true) {
             printMenu();
             int choice = selectChoice(scanner);
@@ -15,8 +19,10 @@ public class App
                 case 1:
                     System.out.println("Available Coins: 1, 2, 5, 10");
                     System.out.print("Enter coin value: ");
-                    int coinValue = scanner.nextInt();
+                    System.out.println("heere");
+                    double coinValue = scanner.nextDouble();
                     Coin coin = getCoinByValue(coinValue);
+
                     if (coin != null) {
                         vendingMachine.insertCoin(coin);
                     } else {
@@ -69,7 +75,7 @@ private  static void printMenu(){
 
     System.out.print("Enter your choice: ");
 }
-    private static Coin getCoinByValue(int coinValue) {
+    private static Coin getCoinByValue(double coinValue) {
         for (Coin coin : Coin.values()) {
             if (coin.getValue() == coinValue) {
                 return coin;

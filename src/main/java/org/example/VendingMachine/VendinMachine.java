@@ -1,21 +1,26 @@
 package org.example.VendingMachine;
 
-import java.util.EnumMap;
-import java.util.Map;
+import org.example.VendingMachine.exceptions.ProductOutOfStockException;
+import org.example.VendingMachine.exceptions.UnsuficentMoneyException;
+
+import java.util.*;
 
 public class VendinMachine {
+
+    private final List<Coin> ACCEPTED_COINS = Arrays.asList(Coin.DIRHAM_1, Coin.DIRHAM_2, Coin.DIRHAM_5, Coin.DIRHAM_10);
     private final Map<Coin, Integer> coinInventory;
     private final Map<Product, Integer> productInventory;
-    private int userBalance;
+    private final Map<Coin, Integer> onHoldCoins;
 
     public VendinMachine() {
         coinInventory = new EnumMap<>(Coin.class);
         productInventory = new EnumMap<>(Product.class);
         initializeInventories();
-        userBalance = 0;
+       onHoldCoins = new EnumMap<>(Coin.class);
     }
 
-    private void initializeInventories() {
+    public void initializeInventories() {
+//        cancelRequest();
         for (Coin coin : Coin.values()) {
             coinInventory.put(coin, 10);
         }
@@ -25,68 +30,93 @@ public class VendinMachine {
         }
     }
 
+
     public void insertCoin(Coin coin) {
-        if (coinInventory.containsKey(coin)) {
-            userBalance += coin.getValue();
-            coinInventory.put(coin, coinInventory.get(coin) + 1);
-        } else {
-            System.out.println("Invalid coin inserted.");
+        if (!ACCEPTED_COINS.contains(coin)) {
+        throw  new IllegalArgumentException("Invalid coin value. Please insert 1, 2, 5, or 10 dirham coins.");
         }
+        onHoldCoins.put(coin, onHoldCoins.getOrDefault(coin, 0) + 1);
+        System.out.println(coin.getValue() + " dirham coin inserted.");
+        System.out.println("Current balance: " + sumCoins(onHoldCoins) + " dirham");
     }
 
-    public void selectProduct(Product product) {
-        if (productInventory.containsKey(product)) {
-            if (userBalance >= product.getPrice()) {
-                dispenseProduct(product);
-            } else {
-                System.out.println("Insufficient balance. Please insert more coins.");
-            }
-        } else {
-            System.out.println("Invalid product selection.");
+    public void selectProduct(Product product) throws ProductOutOfStockException, UnsuficentMoneyException {
+        int availableProducts = productInventory.get(product);
+        if (availableProducts==0) {
+            throw new ProductOutOfStockException("Product is out of stock. Please select another product.");
         }
+        if (sumCoins(onHoldCoins) < product.getPrice()) {
+            throw new UnsuficentMoneyException("Insufficient money to buy the product");
+        }
+        // Caculate the ammount of money to return to the costumer
+        int change = sumCoins(onHoldCoins) - product.getPrice();
+        returnChange(change);
+        // Decease co/unt of product from inventory
+        dispenseProduct(product);
+        // Clear On hold coins
+        onHoldCoins.clear();
+
+
+
     }
 
-    private void dispenseProduct(Product product) {
-        int change = userBalance - product.getPrice();
-        System.out.println("Product dispensed: " + product.getName());
-        if (change > 0) {
-            System.out.println("Change returned: " + change + " dirham");
-            userBalance = 0;
-            returnChange(change);
-        }
-        userBalance = 0;
-        productInventory.put(product, productInventory.get(product) - 1);
+    private Product dispenseProduct(Product product) {
+        int availableProducts = productInventory.get(product);
+        productInventory.put(product, availableProducts - 1);
+        System.out.println("Dispensing " + product.getName());
+        System.out.println("Remaining " + product.getName() + " in stock: " + productInventory.get(product));
+        return product;
     }
 
-    private void returnChange(int change) {
+    private EnumMap<Coin,Integer> returnChange(int change) {
+        System.out.println("Returning " + change + " dirham in total.");
+        EnumMap<Coin, Integer> changeCoins = new EnumMap<>(Coin.class);
         for (Coin coin : Coin.values()) {
-            int numCoins = change / coin.getValue();
-            if (numCoins > 0 && coinInventory.get(coin) > 0) {
+
+            int coinCount = (int) (change / coin.getValue());
+            if (coinCount > 0) {
                 int availableCoins = coinInventory.get(coin);
-                int coinsToReturn = Math.min(numCoins, availableCoins);
-                System.out.println("Returned " + coinsToReturn + " coins of " + coin.getValue() + " dirham");
-                coinInventory.put(coin, availableCoins - coinsToReturn);
-                change -= coinsToReturn * coin.getValue();
+                int returnedCoins = Math.min(coinCount, availableCoins);
+                coinInventory.put(coin, availableCoins - returnedCoins);
+                change -= returnedCoins * coin.getValue();
+                System.out.println(returnedCoins + " x " + coin.getValue() + " dirham");
+                changeCoins.put(coin, returnedCoins);
             }
         }
+        return changeCoins;
     }
 
-    public void cancelRequest() {
-        System.out.println("Request canceled. Refunding " + userBalance + " dirham");
-        returnChange(userBalance);
-        userBalance = 0;
+    public EnumMap<Coin,Integer> cancelRequest() {
+        System.out.println("Request cancelled. Returning " + sumCoins(onHoldCoins) + " dirham.");
+        returnChange(sumCoins(onHoldCoins));
+        onHoldCoins.clear();
+        return returnChange(sumCoins(onHoldCoins));
     }
+//reset the vending machine return all the coins and products to the initial state returning Coins and Products
+public EnumMap<Coin, Integer> reset() {
+    System.out.println("Resetting the vending machine. Returning " + sumCoins(onHoldCoins) + " dirham.");
+    EnumMap<Coin, Integer> returnedCoins = returnChange(sumCoins(onHoldCoins));
+    onHoldCoins.clear();
+    initializeInventories();
+    return returnedCoins;
+}
 
-    public void reset() {
-        coinInventory.clear();
-        productInventory.clear();
-        initializeInventories();
-        userBalance = 0;
-        System.out.println("Vending machine reset successfully.");
-    }
+
 
     public int getUserBalance() {
-        return userBalance;
+        return sumCoins(onHoldCoins);
     }
+
+    public int sumCoins(Map<Coin, Integer> coins ) {
+        int sum = 0;
+        for (Map.Entry<Coin, Integer> entry : coins.entrySet()) {
+            sum += entry.getKey().getValue() * entry.getValue();
+        }
+        return sum;
+    }
+
+    // 1:10 -> {1:2, 2:2, 5:0, 10:0}
+
+    // Create a function
 }
 

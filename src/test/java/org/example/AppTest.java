@@ -4,6 +4,9 @@ import org.example.VendingMachine.Coin;
 import org.example.VendingMachine.EnumGetter;
 import org.example.VendingMachine.Product;
 import org.example.VendingMachine.VendinMachine;
+import org.example.VendingMachine.exceptions.ProductOutOfStockException;
+import org.example.VendingMachine.exceptions.UnsuficentMoneyException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +24,7 @@ public class AppTest{
         void setUp() {
             vendingMachine = new VendinMachine();
             enumGetter = new EnumGetter();
+            vendingMachine.initializeInventories();
         }
 
         @Test
@@ -32,13 +36,15 @@ public class AppTest{
 
         @Test
         void insertInvalidCoin() {
-            Coin coin = enumGetter.getCoinByValue(3);
-            vendingMachine.insertCoin(coin);
-            assertEquals(0, vendingMachine.getUserBalance());
+            Coin coin = enumGetter.getCoinByValue(0.5);
+            Assertions.assertThrows(IllegalArgumentException.class, () -> {
+                vendingMachine.insertCoin(coin);
+            });
+
         }
 
         @Test
-        void selectValidProductWithSufficientBalance() {
+        void selectValidProductWithSufficientBalance() throws ProductOutOfStockException, UnsuficentMoneyException {
             Coin coin = enumGetter.getCoinByValue(10);
             Product product = enumGetter.getProductByName("twix");
             vendingMachine.insertCoin(coin);
@@ -47,21 +53,20 @@ public class AppTest{
         }
 
         @Test
-        void selectValidProductWithInsufficientBalance() {
-            Coin coin = enumGetter.getCoinByValue(5);
-            Product product = enumGetter.getProductByName("bueno");
-            vendingMachine.insertCoin(coin);
-            vendingMachine.selectProduct(product);
-            assertEquals(5, vendingMachine.getUserBalance());
-        }
+        void selectAProductOutOfStock() throws ProductOutOfStockException, UnsuficentMoneyException {
 
-        @Test
-        void selectInvalidProduct() {
-            Coin coin = enumGetter.getCoinByValue(10);
-            Product product = enumGetter.getProductByName("invalidProduct");
-            vendingMachine.insertCoin(coin);
-            vendingMachine.selectProduct(product);
-            assertEquals(10, vendingMachine.getUserBalance());
+            for (int i = 0; i < 10; i++) {
+                Coin coin = enumGetter.getCoinByValue(5);
+                vendingMachine.insertCoin(coin);
+                vendingMachine.selectProduct(Product.WATER);
+            }
+            Assertions.assertThrows(ProductOutOfStockException.class, () -> {
+                Coin coin = enumGetter.getCoinByValue(5);
+                vendingMachine.insertCoin(coin);
+                vendingMachine.selectProduct(Product.WATER);
+            });
+
+//            assertEquals(0, vendingMachine.selectProduct(product));
         }
 
         @Test
@@ -80,3 +85,4 @@ public class AppTest{
             assertEquals(0, vendingMachine.getUserBalance());
         }
 }
+//testing poroduct  null

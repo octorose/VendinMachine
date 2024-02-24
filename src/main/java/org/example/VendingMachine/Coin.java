@@ -1,18 +1,20 @@
 package org.example.VendingMachine;
 
 public enum Coin {
+
+//    DIRHAM_HALF(0.5),
     DIRHAM_1(1),
     DIRHAM_2(2),
     DIRHAM_5(5),
     DIRHAM_10(10);
 
-    private final int value;
+    private final double value;
 
-    Coin(int value) {
+    Coin(double value) {
         this.value = value;
     }
 
-    public int getValue() {
+    public double getValue() {
         return value;
     }
 }
